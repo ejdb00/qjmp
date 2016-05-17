@@ -33,6 +33,8 @@ class QJmpTopo(Topo):
 
     return
 
+def startPTPd():
+  server_cmd = "ptpd -M -c -b h1-eth0 -y 0 -D -h -T 10"
 
 def main():
   topo = QJmpTopo()
