@@ -15,7 +15,7 @@ class QJmpTopo(Topo):
     for h in range(n_hosts):
       hosts.append(self.addHost('h%s' % (h + 1), cpu=0.5/n_hosts))
     switches = []
-    for s in range(n_switchs):
+    for s in range(n_switches):
       switches.append(self.addSwitch('s%s' % (s + 1)))
 
     # Link the switches together
@@ -35,7 +35,7 @@ class QJmpTopo(Topo):
 
 
 def main():
-  topo = QJmpTopo
+  topo = QJmpTopo()
   net = Mininet(topo=topo, host=CPULimitedHost, link = TCLink)
 
 
