@@ -33,3 +33,11 @@ class QJmpTopo(Topo):
 
       return
 
+
+def main():
+  topo = QJmpTopo
+  net = Mininet(topo=topo, host=CPULimitedHost, link = TCLink)
+
+
+if __name__ == "__main__":
+  main()
