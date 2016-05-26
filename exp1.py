@@ -15,6 +15,10 @@ ptpdServerProcess = {}
 memcachedClientProcess = {}
 memcachedServerProcess = {}
 
+mb = 1024 * 1024
+kb = 1024
+
+
 class QJmpTopo(Topo):
   "Topology for QJump experiments"
 
@@ -41,6 +45,7 @@ class QJmpTopo(Topo):
 
     return
 
+
 def startPTPd(net, outfile, priority):
   ptpdServer = net.getNodeByName("h8")
   ptpdClient = net.getNodeByName("h1")
@@ -48,6 +53,7 @@ def startPTPd(net, outfile, priority):
   client_cmd = './qjau.py -p %d -c \"ptpd -x -c -g -D -b h1-eth0 -h -T 10 -f %s\"' % (priority, outfile)
   ptpdServerProcess = ptpdServer.popen(server_cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
   ptpdClientProcess = ptpdClient.popen(client_cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
+
 
 def startMemcached(net, outfile, priority):
   memcachedServer = net.getNodeByName("h11")
@@ -57,13 +63,16 @@ def startMemcached(net, outfile, priority):
   memcachedServerProcess = memcachedServer.popen(server_cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
   memcachedClientProcess = memcachedClient.popen(client_cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
 
+
 def stopPTPd():
   os.killpg(os.getpgid(ptpdClientProcess.pid), signal.SIGTERM)
   os.killpg(os.getpgid(ptpdServerProcess.pid), signal.SIGTERM)
 
+
 def stopMemcached():
   os.killpg(os.getpgid(memcachedClientProcess.pid), signal.SIGTERM)
   os.killpg(os.getpgid(memcachedServerProcess.pid), signal.SIGTERM)
+
 
 def runExp1(net):
   startPTPd(net, "./data/exp1_PTPd_out", 0)
@@ -72,12 +81,14 @@ def runExp1(net):
   stopPTPd()
   stopMemcached()
 
+
 def runExp2(net, hadoop):
   startPTPd(net, "./data/exp2_PTPd_out", 0)
   startMemcached(net, "./data/exp2_memcached_out", 0)
   hadoop.runHadoopSimulation()
   stopPTPd()
   stopMemcached()
+
 
 def runExp3(net, hadoop):
   startPTPd(net, "./data/exp3_PTPd_out", 7)
@@ -86,18 +97,27 @@ def runExp3(net, hadoop):
   stopPTPd()
   stopMemcached()
 
-def configureHadoopSim(net, hadoop_dir):
+
+def configureHadoopSim(net, hadoopDir):
   hostnames = []
   for i in range(12):
     hostname = "h%d" % i + 1
     hostnames.append(hostname)
+
   workernames = ["h4", "h5", "h6", "h7", "h9", "h10", "h12"]
   workers = []
   for wn in workernames:
     workers.append(net.getNodeByName(wn))
+
   master = net.getNodeByName("h2")
-  hadoop = hadoop_sim.HadoopSim(hostnames, master, workers, hadoop_dir, sizes, 0)
+  sizes = [1 * mb, 5 * mb, 10 * mb]
+  replicationFactor = 6
+  priority = 0
+
+  hadoop = hadoop_sim.HadoopSim(hostnames, master, workers, hadoopDir, sizes, replicationFactor, priority)
+
   return hadoop
+
 
 def plotData():
   cmd = "python plot_ptp_memcached_hadoop_timeline.py \
@@ -108,6 +128,7 @@ def plotData():
       ./data/exp3_PTPd_out \
       ./data/exp3_memcached_out"
   os.system(cmd)
+
 
 def main():
   topo = QJmpTopo()
@@ -128,6 +149,7 @@ def main():
   hadoop.removeFiles()
 
   #plotData()
+
 
 if __name__ == "__main__":
   main()

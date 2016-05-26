@@ -9,13 +9,16 @@ class HadoopSim:
   mb = 1024 * 1024
   kb = 1024
 
-  def __init__(self, hostnames, master, workers, dirPath, sizes, priority):
+
+  def __init__(self, hostnames, master, workers, dirPath, sizes, replicationFactor, priority):
     self.hostnames = hostnames
     self.dirPath = dirPath
     self.sizes = sizes
     self.master = master
     self.workers = workers
     self.priority = priority
+    self.replicationFactor = replicationFactor
+
 
   def generateFiles(self):
     for hn in self.hostnames:
@@ -26,6 +29,7 @@ class HadoopSim:
         for b in range(sz/16):
           f.write(os.urandom(16))
         f.close()
+
 
   def sendFileOfSize(self, sender, receiver, size):
     r_name = receiver.name
@@ -44,12 +48,14 @@ class HadoopSim:
   def removeFiles(self):
     shutil.rmtree(self.dirPath, ignore_errors=True)
 
+
   def generateShuffleSets(self):
     self.workersSet = sets.Set(range(len(self.workers)))
     self.shuffleSets = []
     for w in range(len(self.workers)):
       self.shuffleSets.append(sets.Set(range(len(self.workers))))
       self.shuffleSets[w].remove(w)
+
 
   def runDistribution(self):
     for n in range(self.replicationFactor):
@@ -59,20 +65,28 @@ class HadoopSim:
         sendFileOfSize(self.master, self.workers[i], 5 * self.mb)
         timer.sleep(random.random() / 4.0)
 
+
   def runShuffle(self):
     nWorkers = len(self.workers)
+
     while len(self.workersSet) > 0:
+
       rs = random.randint(0, nWorkers - 1)
       if rs in self.workersSet:
         sender = workers[rs]
+
         rr = random.randint(0, nWorkers - 1)
         if rr in self.shuffleSets[rs]:
           receiver = workers[rr]
-          sendFileOfSize(sender, receiver, 10 * self.mb)
+
+          sendFileOfSize(sender, receiver, 5 * self.mb)
+
           self.shuffleSets[rs].remove(rr)
           if len(self.shuffleSets[rs]) == 0:
             self.workersSet.remove(rs)
+
           timer.sleep(random.random() / 2.0)
+
 
   def runCollection(self):
     for n in range(self.replicationFactor):
@@ -81,6 +95,7 @@ class HadoopSim:
       for i in order:
         sendFileOfSize(self.workers[i], self.master, 10 * self.mb)
         timer.sleep(random.random() * 2)
+
 
   def runHadoopSimulation(self):
     self.generateShuffleSets()
