@@ -13,7 +13,7 @@ import subprocess
 import time
 
 from functools import partial
-from vlanhost import VLANHost
+from mininet.examples.vlanhost import VLANHost
 
 MB = 1024 * 1024
 KB = 1024
