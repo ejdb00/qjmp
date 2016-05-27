@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 from mininet.topo import Topo
-from mininet.node import CPULimitedHost
+from mininet.node import CPULimitedHost, OVSHtbQosSwitch
 from mininet.link import TCLink
 from mininet.net import Mininet
 from mininet.util import dumpNodeConnections
@@ -9,6 +9,9 @@ from mininet.cli import CLI
 import hadoop_sim
 import os
 import signal
+
+from functools import partial
+from vlanhost import VLANHost
 
 ptpdClientProcess = {}
 ptpdServerProcess = {}
@@ -139,7 +142,8 @@ def main():
     os.makedirs("./data")
   os.system("sysctl -w net.ipv4.tcp_congestion_control=cubic")
   topo = QJmpTopo()
-  net = Mininet(topo=topo, host=CPULimitedHost, link = TCLink)
+  host = partial(VLANHost, vlan=2)
+  net = Mininet(topo=topo, host=host, link = TCLink, switch = OVSHtbQosSwitch)
   hadoopDir = "/tmpfs/hadoop/"
   hadoop = configureHadoopSim(net, hadoopDir)
   hadoop.generateFiles()
