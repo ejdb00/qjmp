@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 from mininet.topo import Topo
-from mininet.node import CPULimitedHost
+from mininet.node import CPULimitedHost, OVSHtbQosSwitch
 from mininet.link import TCLink
 from mininet.net import Mininet
 from mininet.util import dumpNodeConnections
@@ -11,6 +11,9 @@ import os
 import signal
 import subprocess
 import time
+
+from functools import partial
+from vlanhost import VLANHost
 
 ptpdClientProcess = {}
 ptpdServerProcess = {}
@@ -139,9 +142,13 @@ def configureExpTopo():
 def main():
   if not os.path.exists("./data"):
     os.makedirs("./data")
+
   os.system("sysctl -w net.ipv4.tcp_congestion_control=cubic")
+
   topo = QJmpTopo()
-  net = Mininet(topo=topo, host=CPULimitedHost, link = TCLink)
+  host = partial(VLANHost, vlan=2)
+  net = Mininet(topo=topo, host=host, link = TCLink, switch = OVSHtbQosSwitch)
+
   if not os.path.exists("./tmp/hadoop"):
       os.makedirs("./tmp/hadoop")
   hadoopDir = "./tmp/hadoop"
