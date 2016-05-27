@@ -59,7 +59,7 @@ def startMemcached(net, outfile, priority):
   memcachedServer = net.getNodeByName("h11")
   memcachedClient = net.getNodeByName("h3")
   server_cmd = './qjau.py -p %d -c \"/usr/bin/memcached -m 64 -p 11211 -u memcache\"' % priority
-  client_cmd = './qjau.py -p %d -c \"../clients/memaslap -s %s:11211 -S 1s -B -T2 -c 3 -X 128 > %s\"' % (priority, memcachedServer.IP(), outfile)
+  client_cmd = './qjau.py -p %d -c \"../clients/memaslap -s %s:11211 -S 1s -B -T2 -c 3 -X 4 > %s\"' % (priority, memcachedServer.IP(), outfile)
   memcachedServerProcess = memcachedServer.popen(server_cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
   memcachedClientProcess = memcachedClient.popen(client_cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
 
@@ -74,15 +74,15 @@ def stopMemcached():
   os.killpg(os.getpgid(memcachedServerProcess.pid), signal.SIGTERM)
 
 
-def runExp1(net):
+def runExp1(net, time):
   startPTPd(net, "./data/exp1_PTPd_out", 0)
   startMemcached(net, "./data/exp1_memcached_out", 0)
-  timer.sleep(10 * 60)
+  timer.sleep(time * 60)
   stopPTPd()
   stopMemcached()
 
 
-def runExp2(net, hadoop):
+def runExp2(net, hadoop, time):
   startPTPd(net, "./data/exp2_PTPd_out", 0)
   startMemcached(net, "./data/exp2_memcached_out", 0)
   hadoop.runHadoopSimulation()
@@ -90,7 +90,7 @@ def runExp2(net, hadoop):
   stopMemcached()
 
 
-def runExp3(net, hadoop):
+def runExp3(net, hadoop, time):
   startPTPd(net, "./data/exp3_PTPd_out", 7)
   startMemcached(net, "./data/exp3_memcached_out", 5)
   hadoop.runHadoopSimulation()
@@ -129,6 +129,10 @@ def plotData():
       ./data/exp3_memcached_out"
   os.system(cmd)
 
+def configureExpTopo():
+  topo = QJmpTopo()
+  net = Mininet(topo=topo, host=CPULimitedHost, link=TCLink)
+  return net
 
 def main():
   topo = QJmpTopo()
@@ -136,14 +140,15 @@ def main():
   hadoopDir = "/tmpfs/hadoop/"
   hadoop = configureHadoopSim(net, hadoopDir)
   hadoop.generateFiles()
+  time = 10
 
   net.start()
 
-  runExp1(net)
+  runExp1(net, time)
 
-  #runExp2(net)
+  #runExp2(net, hadoop, time)
 
-  #runExp3(net)
+  #runExp3(net, hadoop, time)
 
   net.stop()
   hadoop.removeFiles()
