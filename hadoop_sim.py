@@ -39,10 +39,10 @@ class HadoopSim:
     port = random.randint(1024, 65535)
 
     recCmd = 'nc -l %d' % port
-    sendCmd = './qjau.py -p %d -c \"nc %s %d < %s\"' % (self.priority, receiver.IP(), port, filename)
+    sendCmd = ['./qjau.py', '-p', str(self.priority), '-c', '\"nc %s %d < %s\"' % (receiver.IP(), port, filename)]
 
     receiver.popen(recCmd, shell=True)
-    sender.popen(sendCmd, shell=True)
+    sender.popen(*sendCmd, shell=True)
 
 
   def removeFiles(self):

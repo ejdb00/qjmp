@@ -15,11 +15,6 @@ import time
 from functools import partial
 from vlanhost import VLANHost
 
-ptpdClientProcess = {}
-ptpdServerProcess = {}
-memcachedClientProcess = {}
-memcachedServerProcess = {}
-
 MB = 1024 * 1024
 KB = 1024
 
@@ -30,7 +25,7 @@ class QJmpTopo(Topo):
   def build(self, n_hosts=12, n_switches=4):
     hosts = []
     for h in range(n_hosts):
-      hosts.append(self.addHost('h%s' % (h + 1), cpu=0.5/n_hosts))
+      hosts.append(self.addHost('h%s' % (h + 1)))
     switches = []
     for s in range(n_switches):
       switches.append(self.addSwitch('s%s' % (s + 1)))
@@ -54,53 +49,63 @@ class QJmpTopo(Topo):
 def startPTPd(net, outfile, priority):
   ptpdServer = net.getNodeByName("h8")
   ptpdClient = net.getNodeByName("h1")
-  server_cmd = './qjau.py -p %d -c \"ptpd -M -c -b h8-eth0 -y 0 -D -h -T 10\"' % priority
-  client_cmd = './qjau.py -p %d -c \"ptpd -x -c -g -D -b h1-eth0 -h -T 10 -f %s\"' % (priority, outfile)
-  ptpdServerProcess = ptpdServer.popen(server_cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
-  ptpdClientProcess = ptpdClient.popen(client_cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
+  server_cmd = ['../qjump-app-util/qjau.py', '-v', '2', '-w', '999999', '-p', str(priority), '-c', '\"ptpd -W -c -b h8-eth0 -y 0 -D -h -T 10\"']
+  client_cmd = ['../qjump-app-util/qjau.py', '-v', '2', '-w', '999999', '-p', str(priority), '-c', '\"ptpd -x -c -g -D -b h1-eth0 -h -T 10 -f %s\"' % (outfile)]
+  ptpdServerProcess = ptpdServer.popen(*server_cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
+  ptpdClientProcess = ptpdClient.popen(*client_cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
+  return (ptpdServerProcess, ptpdClientProcess)
 
 
 def startMemcached(net, outfile, priority):
   memcachedServer = net.getNodeByName("h11")
   memcachedClient = net.getNodeByName("h3")
-  server_cmd = './qjau.py -p %d -c \"/usr/bin/memcached -m 64 -p 11211 -u memcache\"' % priority
-  client_cmd = './qjau.py -p %d -c \"../clients/memaslap -s %s:11211 -S 1s -B -T2 -c 4 -X 128 > %s\"' % (priority, memcachedServer.IP(), outfile)
-  memcachedServerProcess = memcachedServer.popen(server_cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
-  memcachedClientProcess = memcachedClient.popen(client_cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
+  server_cmd = ['../qjump-app-util/qjau.py', '-v', '2', '-w', '999999', '-p', str(priority), '-c', '\"/usr/bin/memcached -m 64 -p 11211 -u memcache\"']
+  client_cmd = ['../qjump-app-util/qjau.py', '-v', '2', '-w', '999999', '-p', str(priority), '-c', '\"./clients/memaslap -s %s:11211 -S 1s -B -T2 -c 4 -X 128 > %s\"' % (memcachedServer.IP(), outfile)]
+  memcachedServerProcess = memcachedServer.popen(*server_cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
+  memcachedClientProcess = memcachedClient.popen(*client_cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
+  return (memcachedServerProcess, memcachedClientProcess)
 
 
-def stopPTPd():
-  os.killpg(os.getpgid(ptpdClientProcess.pid), signal.SIGTERM)
-  os.killpg(os.getpgid(ptpdServerProcess.pid), signal.SIGTERM)
+def stopPTPd(processes):
+  (serverProcess, clientProcess) = processes
+  os.killpg(os.getpgid(clientProcess.pid), signal.SIGTERM)
+  os.killpg(os.getpgid(serverProcess.pid), signal.SIGTERM)
 
 
-def stopMemcached():
-  os.killpg(os.getpgid(memcachedClientProcess.pid), signal.SIGTERM)
-  os.killpg(os.getpgid(memcachedServerProcess.pid), signal.SIGTERM)
+def stopMemcached(processes):
+  (serverProcess, clientProcess) = processes
+  os.killpg(os.getpgid(clientProcess.pid), signal.SIGTERM)
+  os.killpg(os.getpgid(serverProcess.pid), signal.SIGTERM)
 
 
-def runExp1(net, expTime):
-  startPTPd(net, "./data/exp1_PTPd_out", 0)
-  startMemcached(net, "./data/exp1_memcached_out", 0)
+def runExp1(net, expTime, dataDir):
+  ptpdOutfile = os.path.join(dataDir, "exp1_PTPd_out")
+  memcachedOutfile = os.path.join(dataDir, "exp1_memcached_out")
+  ptpdProcesses = startPTPd(net, ptpdOutfile, 0)
+  memcachedProcesses = startMemcached(net, memcachedOutfile, 0)
   time.sleep(expTime * 60)
-  stopPTPd()
-  stopMemcached()
+  stopPTPd(ptpdProcesses)
+  stopMemcached(memcachedProcesses)
 
 
-def runExp2(net, hadoop, expTime):
-  startPTPd(net, "./data/exp2_PTPd_out", 0)
-  startMemcached(net, "./data/exp2_memcached_out", 0)
+def runExp2(net, hadoop, expTime, dataDir):
+  ptpdOutfile = os.path.join(dataDir, "exp2_PTPd_out")
+  memcachedOutfile = os.path.join(dataDir, "exp2_memcached_out")
+  ptpdProcesses = startPTPd(net, ptpdOutfile, 0)
+  memcachedProcesses = startMemcached(net, memcachedOutfile, 0)
   hadoop.runHadoopSimulation()
-  stopPTPd()
-  stopMemcached()
+  stopPTPd(ptpdProcesses)
+  stopMemcached(memcachedProcesses)
 
 
-def runExp3(net, hadoop, expTime):
-  startPTPd(net, "./data/exp3_PTPd_out", 7)
-  startMemcached(net, "./data/exp3_memcached_out", 5)
+def runExp3(net, hadoop, expTime, dataDir):
+  ptpdOutfile = os.path.join(dataDir, "exp3_PTPd_out")
+  memcachedOutfile = os.path.join(dataDir, "exp3_memcached_out")
+  ptpdProcesses = startPTPd(net, ptpdOutfile, 7)
+  memcachedProcesses = startMemcached(net, memcachedOutfile, 5)
   hadoop.runHadoopSimulation()
-  stopPTPd()
-  stopMemcached()
+  stopPTPd(ptpdProcesses)
+  stopMemcached(memcachedProcesses)
 
 
 def configureHadoopSim(net, hadoopDir):
@@ -124,50 +129,52 @@ def configureHadoopSim(net, hadoopDir):
   return hadoop
 
 
-def plotData():
-  cmd = "python plot_ptp_memcached_hadoop_timeline.py \
-      ./data/exp1_PTPd_out \
-      ./data/exp1_memcached_out \
-      ./data/exp2_PTPd_out \
-      ./data/exp2_memcached_out \
-      ./data/exp3_PTPd_out \
-      ./data/exp3_memcached_out"
+def plotData(dataDir):
+  exp1ptpd = os.path.join(dataDir, "exp1_PTPd_out")
+  exp1memcached = os.path.join(dataDir, "exp1_memcached_out")
+  exp2ptpd = os.path.join(dataDir, "exp2_PTPd_out")
+  exp2memcached = os.path.join(dataDir, "exp2_memcached_out")
+  exp3ptpd = os.path.join(dataDir, "exp3_PTPd_out")
+  exp3memcached = os.path.join(dataDir, "exp3_memcached_out")
+  cmd = "python plot_ptp_memcached_hadoop_timeline.py %s %s %s %s %s %s" % (epx1ptpd, exp1memcached, exp2ptpd, exp2memcached, exp3ptpd, exp3memcached)
   os.system(cmd)
 
 def configureExpTopo():
   topo = QJmpTopo()
-  net = Mininet(topo=topo, host=CPULimitedHost, link=TCLink)
+  host = partial(VLANHost, vlan=2)
+  net = Mininet(topo=topo, host=host, link = TCLink, switch = OVSHtbQosSwitch)
   return net
 
 def main():
   if not os.path.exists("./data"):
     os.makedirs("./data")
+  dataDir = os.path.join("./data", time.strftime("%d-%m-%Y_%H-%M-%S"))
+  os.makedirs(dataDir)
 
   os.system("sysctl -w net.ipv4.tcp_congestion_control=cubic")
 
-  topo = QJmpTopo()
-  host = partial(VLANHost, vlan=2)
-  net = Mininet(topo=topo, host=host, link = TCLink, switch = OVSHtbQosSwitch)
+  net = configureExpTopo()
 
-  if not os.path.exists("./tmp/hadoop"):
-      os.makedirs("./tmp/hadoop")
   hadoopDir = "./tmp/hadoop"
+  if not os.path.exists(hadoopDir):
+      os.makedirs(hadoopDir)
   hadoop = configureHadoopSim(net, hadoopDir)
   hadoop.generateFiles()
+
   expTime = 10
 
   net.start()
 
-  runExp1(net, expTime)
+  runExp1(net, expTime, dataDir)
 
-  #runExp2(net, hadoop, expTime)
+  #runExp2(net, hadoop, expTime, dataDir)
 
-  #runExp3(net, hadoop, expTime)
+  #runExp3(net, hadoop, expTime, dataDir)
 
   net.stop()
   hadoop.removeFiles()
 
-  #plotData()
+  #plotData(dataDir)
 
 
 if __name__ == "__main__":
