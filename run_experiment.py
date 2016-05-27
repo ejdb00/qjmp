@@ -13,7 +13,7 @@ import subprocess
 import time
 
 from functools import partial
-from vlanhost import VLANHost
+from mininet.examples.vlanhost import VLANHost
 
 ptpdClientProcess = {}
 ptpdServerProcess = {}
