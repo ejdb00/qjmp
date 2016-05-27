@@ -74,15 +74,15 @@ def stopMemcached():
   os.killpg(os.getpgid(memcachedServerProcess.pid), signal.SIGTERM)
 
 
-def runExp1(net, time):
+def runExp1(net, expTime):
   startPTPd(net, "./data/exp1_PTPd_out", 0)
   startMemcached(net, "./data/exp1_memcached_out", 0)
-  timer.sleep(time * 60)
+  time.sleep(expTime * 60)
   stopPTPd()
   stopMemcached()
 
 
-def runExp2(net, hadoop, time):
+def runExp2(net, hadoop, expTime):
   startPTPd(net, "./data/exp2_PTPd_out", 0)
   startMemcached(net, "./data/exp2_memcached_out", 0)
   hadoop.runHadoopSimulation()
@@ -90,7 +90,7 @@ def runExp2(net, hadoop, time):
   stopMemcached()
 
 
-def runExp3(net, hadoop, time):
+def runExp3(net, hadoop, expTime):
   startPTPd(net, "./data/exp3_PTPd_out", 7)
   startMemcached(net, "./data/exp3_memcached_out", 5)
   hadoop.runHadoopSimulation()
@@ -135,20 +135,23 @@ def configureExpTopo():
   return net
 
 def main():
+  if not os.path.exists("./data"):
+    os.makedirs("./data")
+  os.system("sysctl -w net.ipv4.tcp_congestion_control=cubic")
   topo = QJmpTopo()
   net = Mininet(topo=topo, host=CPULimitedHost, link = TCLink)
   hadoopDir = "/tmpfs/hadoop/"
   hadoop = configureHadoopSim(net, hadoopDir)
   hadoop.generateFiles()
-  time = 10
+  expTime = 10
 
   net.start()
 
-  runExp1(net, time)
+  runExp1(net, expTime)
 
-  #runExp2(net, hadoop, time)
+  #runExp2(net, hadoop, expTime)
 
-  #runExp3(net, hadoop, time)
+  #runExp3(net, hadoop, expTime)
 
   net.stop()
   hadoop.removeFiles()
