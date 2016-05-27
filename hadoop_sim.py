@@ -24,7 +24,7 @@ class HadoopSim:
     for hn in self.hostnames:
       for sz in self.sizes:
         filename = hn + str(sz)
-        full_path = os.path.join(self.dir_path, filename)
+        full_path = os.path.join(self.dirPath, filename)
         f = open(full_path, 'br+')
         for b in range(sz/16):
           f.write(os.urandom(16))

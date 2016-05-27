@@ -9,6 +9,8 @@ from mininet.cli import CLI
 import hadoop_sim
 import os
 import signal
+import subprocess
+import time
 
 ptpdClientProcess = {}
 ptpdServerProcess = {}
@@ -59,7 +61,7 @@ def startMemcached(net, outfile, priority):
   memcachedServer = net.getNodeByName("h11")
   memcachedClient = net.getNodeByName("h3")
   server_cmd = './qjau.py -p %d -c \"/usr/bin/memcached -m 64 -p 11211 -u memcache\"' % priority
-  client_cmd = './qjau.py -p %d -c \"../clients/memaslap -s %s:11211 -S 1s -B -T2 -c 3 -X 4 > %s\"' % (priority, memcachedServer.IP(), outfile)
+  client_cmd = './qjau.py -p %d -c \"../clients/memaslap -s %s:11211 -S 1s -B -T2 -c 4 -X 128 > %s\"' % (priority, memcachedServer.IP(), outfile)
   memcachedServerProcess = memcachedServer.popen(server_cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
   memcachedClientProcess = memcachedClient.popen(client_cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
 
@@ -101,7 +103,7 @@ def runExp3(net, hadoop, expTime):
 def configureHadoopSim(net, hadoopDir):
   hostnames = []
   for i in range(12):
-    hostname = "h%d" % i + 1
+    hostname = "h%d" % (i + 1)
     hostnames.append(hostname)
 
   workernames = ["h4", "h5", "h6", "h7", "h9", "h10", "h12"]
@@ -140,7 +142,9 @@ def main():
   os.system("sysctl -w net.ipv4.tcp_congestion_control=cubic")
   topo = QJmpTopo()
   net = Mininet(topo=topo, host=CPULimitedHost, link = TCLink)
-  hadoopDir = "/tmpfs/hadoop/"
+  if not os.path.exists("./tmp/hadoop"):
+      os.makedirs("./tmp/hadoop")
+  hadoopDir = "./tmp/hadoop"
   hadoop = configureHadoopSim(net, hadoopDir)
   hadoop.generateFiles()
   expTime = 10
