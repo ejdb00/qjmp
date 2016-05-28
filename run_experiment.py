@@ -48,7 +48,7 @@ class QJmpTopo(Topo):
     return
 
 def configureQueues(net):
-  for host in net.hosts:
+  for node in net.hosts:
     for ifname in host.intfNames():
       if ifname == "lo":
         continue
