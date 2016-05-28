@@ -44,7 +44,7 @@ class HadoopSim:
     port = random.randint(1024, 65535)
 
     recCmd = ['nc', '-l', str(port)]
-    sendCmd = ['./qjau.py', '-p', str(self.priority), '-c', '\"nc %s %d < %s\"' % (receiver.IP(), port, filename)]
+    sendCmd = ['./qjau.py', '-p', str(self.priority), '-v', '0', '-w', '9999999', '-c', '\"nc %s %d < %s\"' % (receiver.IP(), port, filename)]
     if not self.useQjump:
         sendCmd = ['nc', receiver.IP(), str(port), '<', filename]
 
@@ -69,8 +69,8 @@ class HadoopSim:
       order = range(len(self.workers))
       random.shuffle(order)
       for i in order:
-        sendFileOfSize(self.master, self.workers[i], self.sizes[1])
-    time.sleep(random.random() / 4.0)
+        self.sendFileOfSize(self.master, self.workers[i], self.sizes[1])
+      time.sleep(10)
 
 
   def runShuffle(self):
@@ -82,19 +82,19 @@ class HadoopSim:
 
           rs = random.randint(0, nWorkers - 1)
           if rs in self.workersSet:
-            sender = workers[rs]
+            sender = self.workers[rs]
 
             rr = random.randint(0, nWorkers - 1)
             if rr in self.shuffleSets[rs]:
-              receiver = workers[rr]
+              receiver = self.workers[rr]
 
-              sendFileOfSize(sender, receiver, self.sizes[0])
+              self.sendFileOfSize(sender, receiver, self.sizes[0])
 
               self.shuffleSets[rs].remove(rr)
               if len(self.shuffleSets[rs]) == 0:
                 self.workersSet.remove(rs)
 
-        time.sleep(random.random() / 2.0)
+        time.sleep(10)
 
 
   def runCollection(self):
@@ -102,8 +102,8 @@ class HadoopSim:
       order = range(len(self.workers))
       random.shuffle(order)
       for i in order:
-        sendFileOfSize(self.workers[i], self.master, self.sizes[1])
-    time.sleep(random.random() * 2)
+        self.sendFileOfSize(self.workers[i], self.master, self.sizes[1])
+      time.sleep(10)
 
 
   def runHadoopSimulation(self):

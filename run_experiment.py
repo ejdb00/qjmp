@@ -62,7 +62,7 @@ def installQjump(net, root_name):
     for ifname in ifnames:
 #      if ifname != root_name:
       ifname = ifname.replace('.2', '')
-      node.pexec('tc', 'qdisc', 'add' , 'dev', ifname, 'parent', '5:1', 'handle', '6:', 'qjump')      
+      node.pexec('tc', 'qdisc', 'add' , 'dev', ifname, 'parent', '5:1', 'handle', '6:', 'qjump')
 #node.pexec('tc qdisc add dev %s parent 5:1 handle 6: qjump' % ifname)
 #      else:
 #        node.pexec('tc qdisc add dev %s root qjump' % ifname)
@@ -224,20 +224,20 @@ def main():
   if not os.path.exists(hadoopDir):
       os.makedirs(hadoopDir)
   hadoop = configureHadoopSim(net, hadoopDir)
-  #hadoop.generateFiles()
+  hadoop.generateFiles()
 
   expTime = 11
 
   net.start()
 
-  runExp1(net, expTime, dataDir)
+  #runExp1(net, expTime, dataDir)
 
-  #runExp2(net, hadoop, expTime, dataDir)
+  runExp2(net, hadoop, expTime, dataDir)
 
   #runExp3(net, hadoop, expTime, dataDir)
 
   net.stop()
-  #hadoop.removeFiles()
+  hadoop.removeFiles()
 
   #plotData(dataDir)
 
