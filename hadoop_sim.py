@@ -69,8 +69,8 @@ class HadoopSim:
       order = range(len(self.workers))
       random.shuffle(order)
       for i in order:
-        sendFileOfSize(self.master, self.workers[i], 5 * self.MB)
-        time.sleep(random.random() / 4.0)
+        sendFileOfSize(self.master, self.workers[i], self.sizes[1])
+    time.sleep(random.random() / 4.0)
 
 
   def runShuffle(self):
@@ -88,13 +88,13 @@ class HadoopSim:
             if rr in self.shuffleSets[rs]:
               receiver = workers[rr]
 
-              sendFileOfSize(sender, receiver, 5 * self.MB)
+              sendFileOfSize(sender, receiver, self.sizes[0])
 
               self.shuffleSets[rs].remove(rr)
               if len(self.shuffleSets[rs]) == 0:
                 self.workersSet.remove(rs)
 
-              time.sleep(random.random() / 2.0)
+        time.sleep(random.random() / 2.0)
 
 
   def runCollection(self):
@@ -102,8 +102,8 @@ class HadoopSim:
       order = range(len(self.workers))
       random.shuffle(order)
       for i in order:
-        sendFileOfSize(self.workers[i], self.master, 10 * self.MB)
-        time.sleep(random.random() * 2)
+        sendFileOfSize(self.workers[i], self.master, self.sizes[1])
+    time.sleep(random.random() * 2)
 
 
   def runHadoopSimulation(self):

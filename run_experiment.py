@@ -34,7 +34,7 @@ class QJmpTopo(Topo):
 
     # Link the switches together
     for s in range(3):
-      self.addLink(switches[s], switches[3], bw=10, delay="10ms")
+      self.addLink(switches[s], switches[3], bw=15)
 
     # Link the hosts to the switches
     for h in range(n_hosts):
@@ -43,7 +43,7 @@ class QJmpTopo(Topo):
         s = 0
       if h > 8:
         s = 2
-      self.addLink(hosts[h], switches[s], bw=10, delay="10ms")
+      self.addLink(hosts[h], switches[s], bw=15)
 
     return
 
@@ -66,8 +66,8 @@ def installQjump(net, root_name):
 def startPTPd(net, outfile, priority, qjump):
   ptpdServer = net.getNodeByName("h8")
   ptpdClient = net.getNodeByName("h1")
-  server_cmd = ['./qjau.py', '-v', '0', '-w', '999999', '-p', str(priority), '-c', '\"ptpd -W -c -b h8-eth0.2 -y 0 -D -h -T 10\"']
-  client_cmd = ['./qjau.py', '-v', '0', '-w', '999999', '-p', str(priority), '-c', '\"ptpd -x -c -g -D -b h1-eth0.2 -h -T 10 -f %s\"' % (outfile)]
+  server_cmd = ['./qjau.py', '-v', '0', '-w', '999999', '-p', str(priority), '-c', '\"ptpd -W -c -b h8-eth0.2 -y 0 -D -h -T 10 -L\"']
+  client_cmd = ['./qjau.py', '-v', '0', '-w', '999999', '-p', str(priority), '-c', '\"ptpd -x -c -g -D -b h1-eth0.2 -h -T 10 -L -f %s\"' % (outfile)]
   if not qjump:
       server_cmd = ['ptpd', '-W', '-c', '-b', 'h8-eth0.2', '-y', '0', '-D', '-h', '-T', '10', '-L']
       client_cmd = ['ptpd', '-x', '-c', '-g', '-D', '-b', 'h1-eth0.2', '-h', '-T', '10', '-f', outfile, '-L']
@@ -79,13 +79,18 @@ def startPTPd(net, outfile, priority, qjump):
 def startMemcached(net, outfile, priority, qjump):
   memcachedServer = net.getNodeByName("h11")
   memcachedClient = net.getNodeByName("h3")
+
   server_cmd = ['./qjau.py', '-v', '0', '-w', '999999', '-p', str(priority), '-c', '\"/usr/bin/memcached -m 64 -p 11211 -u memcache\"']
-  client_cmd = ['./qjau.py', '-v', '0', '-w', '999999', '-p', str(priority), '-c', '\"./clients/memaslap -s %s:11211 -S 1s -B -T2 -c 4 -X 128 > %s\"' % (memcachedServer.IP(), outfile)]
   if not qjump:
       server_cmd = ['/usr/bin/memcached', '-m', '64', '-p', '11211', '-u', 'memcache']
-      client_cmd = ['./clients/memaslap', '-s', memcachedServer.IP() + ':11211', '-S', '1s', '-B', '-T2', '-c', '4', '-X', '128', '>', outfile]
   memcachedServerProcess = memcachedServer.popen(*server_cmd, stdout=subprocess.PIPE, shell=True)
-  memcachedClientProcess = memcachedClient.popen(*client_cmd, stdout=subprocess.PIPE, shell=True)
+
+  for i in range(10):
+    partial_out = outfile + '.%02d' % (i + 1)
+    client_cmd = ['./qjau.py', '-v', '0', '-w', '999999', '-p', str(priority), '-c', '\"./clients/memaslap -s %s:11211 -S 1s -B -T1 -c 1 -X 128 > %s\"' % (memcachedServer.IP(), partial_out)]
+    if not qjump:
+      client_cmd = ['./clients/memaslap', '-s', memcachedServer.IP() + ':11211', '-S', '1s', '-B', '-T2', '-c', '4', '-X', '128', '>', partial_out]
+    memcachedClientProcess = memcachedClient.popen(*client_cmd, stdout=subprocess.PIPE, shell=True)
   return (memcachedServerProcess, memcachedClientProcess)
 
 
@@ -107,20 +112,36 @@ def stopMemcached():
 
 def runExp1(net, expTime, dataDir):
   ptpdOutfile = os.path.join(dataDir, "exp1_PTPd_out")
-  memcachedOutfile = os.path.join(dataDir, "exp1_memcached_out")
-  ptpdProcesses = startPTPd(net, ptpdOutfile, 0, False)
-  memcachedProcesses = startMemcached(net, memcachedOutfile, 0, False)
-  time.sleep(expTime * 60)
+  memcachedName = "exp1_memcached_out"
+  os.makedirs(os.path.join(dataDir, memcachedName))
+  memcachedOutfile = os.path.join(dataDir, memcachedName, memcachedName)
+  ptpdProcesses = startPTPd(net, ptpdOutfile, 0, True)
+  memcachedProcesses = startMemcached(net, memcachedOutfile, 0, True)
+  for i in range(expTime):
+      time.sleep(60)
+      print "You've been waiting for %d minutes" % (i + 1)
   stopPTPd()
   stopMemcached()
 
 
 def runExp2(net, hadoop, expTime, dataDir):
   ptpdOutfile = os.path.join(dataDir, "exp2_PTPd_out")
-  memcachedOutfile = os.path.join(dataDir, "exp2_memcached_out")
-  ptpdProcesses = startPTPd(net, ptpdOutfile, 0, False)
-  memcachedProcesses = startMemcached(net, memcachedOutfile, 0, False)
+  memcachedName = "exp2_memcached_out"
+  os.makedirs(os.path.join(dataDir, memcachedName))
+  memcachedOutfile = os.path.join(dataDir, memcachedName, memcachedName)
+
+  start = time.time()
+
+  ptpdProcesses = startPTPd(net, ptpdOutfile, 0, True)
+  memcachedProcesses = startMemcached(net, memcachedOutfile, 0, True)
   hadoop.runHadoopSimulation()
+
+  cur = time.time()
+  while(cur - start < expTime * 60):
+      print "%d seconds left" % int((expTime * 60) - (cur - start))
+      time.sleep(10)
+      cur = time.time()
+
   stopPTPd()
   stopMemcached()
 
@@ -128,10 +149,22 @@ def runExp2(net, hadoop, expTime, dataDir):
 def runExp3(net, hadoop, expTime, dataDir):
   hadoop.useQjump(True)
   ptpdOutfile = os.path.join(dataDir, "exp3_PTPd_out")
-  memcachedOutfile = os.path.join(dataDir, "exp3_memcached_out")
+  memcachedName = "exp3_memcached_out"
+  os.makedirs(os.path.join(dataDir, memcachedName))
+  memcachedOutfile = os.path.join(dataDir, memcachedName, memcachedName)
+
+  start = time.time()
+
   ptpdProcesses = startPTPd(net, ptpdOutfile, 7, True)
   memcachedProcesses = startMemcached(net, memcachedOutfile, 5, True)
   hadoop.runHadoopSimulation()
+
+  cur = time.time()
+  while(cur - start < expTime * 60):
+      print "%d seconds left" % int((expTime * 60) - (cur - start))
+      time.sleep(10)
+      cur = time.time()
+
   stopPTPd()
   stopMemcached()
 
@@ -148,7 +181,7 @@ def configureHadoopSim(net, hadoopDir):
     workers.append(net.getNodeByName(wn))
 
   master = net.getNodeByName("h2")
-  sizes = [1 * MB, 5 * MB, 10 * MB]
+  sizes = [1 * MB, 2 * MB, 5 * MB]
   replicationFactor = 6
   priority = 0
 
@@ -189,7 +222,7 @@ def main():
   hadoop = configureHadoopSim(net, hadoopDir)
   #hadoop.generateFiles()
 
-  expTime = 0.1
+  expTime = 11
 
   net.start()
 
