@@ -47,6 +47,21 @@ class QJmpTopo(Topo):
 
     return
 
+def configureQueues(net):
+  for host in net.hosts:
+    for ifname in host.intfNames():
+      for i in range(8):
+        node.pexec('vconfig set_egress_map %s %d %d' % (ifname, str(i), str(i)))
+        node.pexec('vconfig set_ingress_map %s %d %d' % (ifname, str(i), str(i)))
+
+def installQjump(net, root_name):
+  for node in net.hosts:
+    ifnames = set(name.split('.')[0] for name in node.intfNames())
+    for ifname in ifnames:
+      if ifname != root_name:
+        node.pexec('tc qdisc add dev %s parent 5:1 handle 6: qjump' % ifname)
+      else:
+        node.pexec('tc qdisc add dev %s root qjump' % ifname)
 
 def startPTPd(net, outfile, priority, qjump):
   ptpdServer = net.getNodeByName("h8")
