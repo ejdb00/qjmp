@@ -6,6 +6,8 @@ from mininet.link import TCLink
 from mininet.net import Mininet
 from mininet.util import dumpNodeConnections
 from mininet.cli import CLI
+from mininet.log import setLogLevel
+
 import hadoop_sim
 import os
 import signal
@@ -46,66 +48,77 @@ class QJmpTopo(Topo):
     return
 
 
-def startPTPd(net, outfile, priority):
+def startPTPd(net, outfile, priority, qjump):
   ptpdServer = net.getNodeByName("h8")
   ptpdClient = net.getNodeByName("h1")
-  server_cmd = ['../qjump-app-util/qjau.py', '-v', '2', '-w', '999999', '-p', str(priority), '-c', '\"ptpd -W -c -b h8-eth0 -y 0 -D -h -T 10\"']
-  client_cmd = ['../qjump-app-util/qjau.py', '-v', '2', '-w', '999999', '-p', str(priority), '-c', '\"ptpd -x -c -g -D -b h1-eth0 -h -T 10 -f %s\"' % (outfile)]
-  ptpdServerProcess = ptpdServer.popen(*server_cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
-  ptpdClientProcess = ptpdClient.popen(*client_cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
+  server_cmd = ['./qjau.py', '-v', '0', '-w', '999999', '-p', str(priority), '-c', '\"ptpd -W -c -b h8-eth0.2 -y 0 -D -h -T 10\"']
+  client_cmd = ['./qjau.py', '-v', '0', '-w', '999999', '-p', str(priority), '-c', '\"ptpd -x -c -g -D -b h1-eth0.2 -h -T 10 -f %s\"' % (outfile)]
+  if not qjump:
+      server_cmd = ['ptpd', '-W', '-c', '-b', 'h8-eth0.2', '-y', '0', '-D', '-h', '-T', '10', '-L']
+      client_cmd = ['ptpd', '-x', '-c', '-g', '-D', '-b', 'h1-eth0.2', '-h', '-T', '10', '-f', outfile, '-L']
+  ptpdServerProcess = ptpdServer.popen(*server_cmd, stdout=subprocess.PIPE, shell=True)
+  ptpdClientProcess = ptpdClient.popen(*client_cmd, stdout=subprocess.PIPE, shell=True)
   return (ptpdServerProcess, ptpdClientProcess)
 
 
-def startMemcached(net, outfile, priority):
+def startMemcached(net, outfile, priority, qjump):
   memcachedServer = net.getNodeByName("h11")
   memcachedClient = net.getNodeByName("h3")
-  server_cmd = ['../qjump-app-util/qjau.py', '-v', '2', '-w', '999999', '-p', str(priority), '-c', '\"/usr/bin/memcached -m 64 -p 11211 -u memcache\"']
-  client_cmd = ['../qjump-app-util/qjau.py', '-v', '2', '-w', '999999', '-p', str(priority), '-c', '\"./clients/memaslap -s %s:11211 -S 1s -B -T2 -c 4 -X 128 > %s\"' % (memcachedServer.IP(), outfile)]
-  memcachedServerProcess = memcachedServer.popen(*server_cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
-  memcachedClientProcess = memcachedClient.popen(*client_cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
+  server_cmd = ['./qjau.py', '-v', '0', '-w', '999999', '-p', str(priority), '-c', '\"/usr/bin/memcached -m 64 -p 11211 -u memcache\"']
+  client_cmd = ['./qjau.py', '-v', '0', '-w', '999999', '-p', str(priority), '-c', '\"./clients/memaslap -s %s:11211 -S 1s -B -T2 -c 4 -X 128 > %s\"' % (memcachedServer.IP(), outfile)]
+  if not qjump:
+      server_cmd = ['/usr/bin/memcached', '-m', '64', '-p', '11211', '-u', 'memcache']
+      client_cmd = ['./clients/memaslap', '-s', memcachedServer.IP() + ':11211', '-S', '1s', '-B', '-T2', '-c', '4', '-X', '128', '>', outfile]
+  memcachedServerProcess = memcachedServer.popen(*server_cmd, stdout=subprocess.PIPE, shell=True)
+  memcachedClientProcess = memcachedClient.popen(*client_cmd, stdout=subprocess.PIPE, shell=True)
   return (memcachedServerProcess, memcachedClientProcess)
 
 
-def stopPTPd(processes):
-  (serverProcess, clientProcess) = processes
-  os.killpg(os.getpgid(clientProcess.pid), signal.SIGTERM)
-  os.killpg(os.getpgid(serverProcess.pid), signal.SIGTERM)
+def stopPTPd():
+  pgrep_out = subprocess.Popen("pgrep ptpd", stdout=subprocess.PIPE, shell=True)
+  pidstr = pgrep_out.stdout.readline()
+  while pidstr != '':
+      os.killpg(os.getpgid(int(pidstr)), signal.SIGTERM)
+      pidstr = pgrep_out.stdout.readline()
 
 
-def stopMemcached(processes):
-  (serverProcess, clientProcess) = processes
-  os.killpg(os.getpgid(clientProcess.pid), signal.SIGTERM)
-  os.killpg(os.getpgid(serverProcess.pid), signal.SIGTERM)
+def stopMemcached():
+  pgrep_out = subprocess.Popen("pgrep memcached", stdout=subprocess.PIPE, shell=True)
+  pidstr = pgrep_out.stdout.readline()
+  while pidstr != '':
+      os.killpg(os.getpgid(int(pidstr)), signal.SIGTERM)
+      pidstr = pgrep_out.stdout.readline()
 
 
 def runExp1(net, expTime, dataDir):
   ptpdOutfile = os.path.join(dataDir, "exp1_PTPd_out")
   memcachedOutfile = os.path.join(dataDir, "exp1_memcached_out")
-  ptpdProcesses = startPTPd(net, ptpdOutfile, 0)
-  memcachedProcesses = startMemcached(net, memcachedOutfile, 0)
+  ptpdProcesses = startPTPd(net, ptpdOutfile, 0, False)
+  memcachedProcesses = startMemcached(net, memcachedOutfile, 0, False)
   time.sleep(expTime * 60)
-  stopPTPd(ptpdProcesses)
-  stopMemcached(memcachedProcesses)
+  stopPTPd()
+  stopMemcached()
 
 
 def runExp2(net, hadoop, expTime, dataDir):
   ptpdOutfile = os.path.join(dataDir, "exp2_PTPd_out")
   memcachedOutfile = os.path.join(dataDir, "exp2_memcached_out")
-  ptpdProcesses = startPTPd(net, ptpdOutfile, 0)
-  memcachedProcesses = startMemcached(net, memcachedOutfile, 0)
+  ptpdProcesses = startPTPd(net, ptpdOutfile, 0, False)
+  memcachedProcesses = startMemcached(net, memcachedOutfile, 0, False)
   hadoop.runHadoopSimulation()
-  stopPTPd(ptpdProcesses)
-  stopMemcached(memcachedProcesses)
+  stopPTPd()
+  stopMemcached()
 
 
 def runExp3(net, hadoop, expTime, dataDir):
+  hadoop.useQjump(True)
   ptpdOutfile = os.path.join(dataDir, "exp3_PTPd_out")
   memcachedOutfile = os.path.join(dataDir, "exp3_memcached_out")
-  ptpdProcesses = startPTPd(net, ptpdOutfile, 7)
-  memcachedProcesses = startMemcached(net, memcachedOutfile, 5)
+  ptpdProcesses = startPTPd(net, ptpdOutfile, 7, True)
+  memcachedProcesses = startMemcached(net, memcachedOutfile, 5, True)
   hadoop.runHadoopSimulation()
-  stopPTPd(ptpdProcesses)
-  stopMemcached(memcachedProcesses)
+  stopPTPd()
+  stopMemcached()
 
 
 def configureHadoopSim(net, hadoopDir):
@@ -159,9 +172,9 @@ def main():
   if not os.path.exists(hadoopDir):
       os.makedirs(hadoopDir)
   hadoop = configureHadoopSim(net, hadoopDir)
-  hadoop.generateFiles()
+  #hadoop.generateFiles()
 
-  expTime = 10
+  expTime = 0.1
 
   net.start()
 
@@ -172,7 +185,7 @@ def main():
   #runExp3(net, hadoop, expTime, dataDir)
 
   net.stop()
-  hadoop.removeFiles()
+  #hadoop.removeFiles()
 
   #plotData(dataDir)
 

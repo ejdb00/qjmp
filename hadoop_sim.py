@@ -18,6 +18,11 @@ class HadoopSim:
     self.workers = workers
     self.priority = priority
     self.replicationFactor = replicationFactor
+    self.useQjump = False
+
+
+  def useQjump(qjump):
+      self.useQjump = qjump
 
 
   def generateFiles(self):
@@ -25,7 +30,7 @@ class HadoopSim:
       for sz in self.sizes:
         filename = hn + str(sz)
         full_path = os.path.join(self.dirPath, filename)
-        f = open(full_path, 'br+')
+        f = open(full_path, 'w')
         for b in range(sz/16):
           f.write(os.urandom(16))
         f.close()
@@ -38,10 +43,12 @@ class HadoopSim:
 
     port = random.randint(1024, 65535)
 
-    recCmd = 'nc -l %d' % port
+    recCmd = ['nc', '-l', str(port)]
     sendCmd = ['./qjau.py', '-p', str(self.priority), '-c', '\"nc %s %d < %s\"' % (receiver.IP(), port, filename)]
+    if not self.useQjump:
+        sendCmd = ['nc', receiver.IP(), str(port), '<', filename]
 
-    receiver.popen(recCmd, shell=True)
+    receiver.popen(*recCmd, shell=True)
     sender.popen(*sendCmd, shell=True)
 
 
@@ -69,23 +76,25 @@ class HadoopSim:
   def runShuffle(self):
     nWorkers = len(self.workers)
 
-    while len(self.workersSet) > 0:
+    for i in range(self.replicationFactor):
+        self.generateShuffleSets()
+        while len(self.workersSet) > 0:
 
-      rs = random.randint(0, nWorkers - 1)
-      if rs in self.workersSet:
-        sender = workers[rs]
+          rs = random.randint(0, nWorkers - 1)
+          if rs in self.workersSet:
+            sender = workers[rs]
 
-        rr = random.randint(0, nWorkers - 1)
-        if rr in self.shuffleSets[rs]:
-          receiver = workers[rr]
+            rr = random.randint(0, nWorkers - 1)
+            if rr in self.shuffleSets[rs]:
+              receiver = workers[rr]
 
-          sendFileOfSize(sender, receiver, 5 * self.MB)
+              sendFileOfSize(sender, receiver, 5 * self.MB)
 
-          self.shuffleSets[rs].remove(rr)
-          if len(self.shuffleSets[rs]) == 0:
-            self.workersSet.remove(rs)
+              self.shuffleSets[rs].remove(rr)
+              if len(self.shuffleSets[rs]) == 0:
+                self.workersSet.remove(rs)
 
-          time.sleep(random.random() / 2.0)
+              time.sleep(random.random() / 2.0)
 
 
   def runCollection(self):
