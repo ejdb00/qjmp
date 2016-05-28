@@ -53,8 +53,8 @@ def configureQueues(net):
       if ifname == "lo":
         continue
       for i in range(8):
-        node.pexec('vconfig', ['set_egress_map', ifname, str(i), str(i)])
-        node.pexec('vconfig', ['set_ingress_map', ifname, str(i), str(i)])
+        node.pexec('vconfig', 'set_egress_map', ifname, str(i), str(i))
+        node.pexec('vconfig', 'set_ingress_map', ifname, str(i), str(i))
 
 def installQjump(net, root_name):
   for node in net.hosts:
