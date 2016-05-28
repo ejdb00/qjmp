@@ -61,7 +61,9 @@ def installQjump(net, root_name):
     ifnames = set(name.split('.')[0] for name in node.intfNames())
     for ifname in ifnames:
 #      if ifname != root_name:
-      node.pexec('tc qdisc add dev %s parent 5:1 handle 6: qjump' % ifname)
+      ifname = ifname.replace('.2', '')
+      node.pexec('tc', 'qdisc', 'add' , 'dev', ifname, 'parent', '5:1', 'handle', '6:', 'qjump')      
+#node.pexec('tc qdisc add dev %s parent 5:1 handle 6: qjump' % ifname)
 #      else:
 #        node.pexec('tc qdisc add dev %s root qjump' % ifname)
 
