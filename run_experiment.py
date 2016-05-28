@@ -115,20 +115,33 @@ def stopMemcached():
 
 
 def runExp1(net, expTime, dataDir):
+
+  print "_____experiment 1______"
+
   ptpdOutfile = os.path.join(dataDir, "exp1_PTPd_out")
   memcachedName = "exp1_memcached_out"
   os.makedirs(os.path.join(dataDir, memcachedName))
   memcachedOutfile = os.path.join(dataDir, memcachedName, memcachedName)
+
+  start = time.time()
+
   ptpdProcesses = startPTPd(net, ptpdOutfile, 0, True)
   memcachedProcesses = startMemcached(net, memcachedOutfile, 0, True)
-  for i in range(expTime):
-      time.sleep(60)
-      print "You've been waiting for %d minutes" % (i + 1)
+
+  cur = time.time()
+  while(cur - start < expTime * 60):
+      time.sleep(10)
+      print "%d seconds left" % int((expTime * 60) - (cur - start))
+      cur = time.time()
+
   stopPTPd()
   stopMemcached()
 
 
 def runExp2(net, hadoop, expTime, dataDir):
+
+  print "_____experiment 2______"
+
   ptpdOutfile = os.path.join(dataDir, "exp2_PTPd_out")
   memcachedName = "exp2_memcached_out"
   os.makedirs(os.path.join(dataDir, memcachedName))
@@ -142,8 +155,8 @@ def runExp2(net, hadoop, expTime, dataDir):
 
   cur = time.time()
   while(cur - start < expTime * 60):
-      print "%d seconds left" % int((expTime * 60) - (cur - start))
       time.sleep(10)
+      print "%d seconds left" % int((expTime * 60) - (cur - start))
       cur = time.time()
 
   stopPTPd()
@@ -151,6 +164,9 @@ def runExp2(net, hadoop, expTime, dataDir):
 
 
 def runExp3(net, hadoop, expTime, dataDir):
+
+  print "_____experiment 3______"
+
   hadoop.useQjump(True)
   ptpdOutfile = os.path.join(dataDir, "exp3_PTPd_out")
   memcachedName = "exp3_memcached_out"
@@ -165,8 +181,8 @@ def runExp3(net, hadoop, expTime, dataDir):
 
   cur = time.time()
   while(cur - start < expTime * 60):
-      print "%d seconds left" % int((expTime * 60) - (cur - start))
       time.sleep(10)
+      print "%d seconds left" % int((expTime * 60) - (cur - start))
       cur = time.time()
 
   stopPTPd()
@@ -230,11 +246,11 @@ def main():
 
   net.start()
 
-  #runExp1(net, expTime, dataDir)
+  runExp1(net, expTime, dataDir)
 
   runExp2(net, hadoop, expTime, dataDir)
 
-  #runExp3(net, hadoop, expTime, dataDir)
+  runExp3(net, hadoop, expTime, dataDir)
 
   net.stop()
   hadoop.removeFiles()

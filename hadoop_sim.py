@@ -18,11 +18,11 @@ class HadoopSim:
     self.workers = workers
     self.priority = priority
     self.replicationFactor = replicationFactor
-    self.useQjump = False
+    self.qjump = False
 
 
-  def useQjump(qjump):
-      self.useQjump = qjump
+  def useQjump(self, use):
+      self.qjump = use
 
 
   def generateFiles(self):
