@@ -4,11 +4,10 @@ import time
 import shutil
 import sets
 
+MB = 1024 * 1024
+KB = 1024
+
 class HadoopSim:
-
-  MB = 1024 * 1024
-  KB = 1024
-
 
   def __init__(self, hostnames, master, workers, dirPath, sizes, replicationFactor, priority):
     self.hostnames = hostnames
@@ -70,7 +69,8 @@ class HadoopSim:
       random.shuffle(order)
       for i in order:
         self.sendFileOfSize(self.master, self.workers[i], self.sizes[1])
-      time.sleep(10)
+        time.sleep(random.random() / 50.0)
+      time.sleep(random.random() * 10)
 
 
   def runShuffle(self):
@@ -94,7 +94,8 @@ class HadoopSim:
               if len(self.shuffleSets[rs]) == 0:
                 self.workersSet.remove(rs)
 
-        time.sleep(10)
+              time.sleep(random.random() / 100.0)
+        time.sleep(random.random() * 10)
 
 
   def runCollection(self):
@@ -103,15 +104,16 @@ class HadoopSim:
       random.shuffle(order)
       for i in order:
         self.sendFileOfSize(self.workers[i], self.master, self.sizes[1])
-      time.sleep(10)
+        time.sleep(random.random() / 50.0)
+      time.sleep(random.random() * 10)
 
 
   def runHadoopSimulation(self):
     self.generateShuffleSets()
     self.runDistribution()
-    time.sleep(20)
-    self.runShuffle()
     time.sleep(5)
+    self.runShuffle()
+    time.sleep(20)
     self.runCollection()
 
 

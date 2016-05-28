@@ -34,7 +34,7 @@ class QJmpTopo(Topo):
 
     # Link the switches together
     for s in range(3):
-      self.addLink(switches[s], switches[3], bw=15)
+      self.addLink(switches[s], switches[3], bw=10)
 
     # Link the hosts to the switches
     for h in range(n_hosts):
@@ -89,9 +89,9 @@ def startMemcached(net, outfile, priority, qjump):
 
   for i in range(10):
     partial_out = outfile + '.%02d' % (i + 1)
-    client_cmd = ['./qjau.py', '-v', '0', '-w', '999999', '-p', str(priority), '-c', '\"./clients/memaslap -s %s:11211 -S 1s -B -T1 -c 1 -X 128 > %s\"' % (memcachedServer.IP(), partial_out)]
+    client_cmd = ['./qjau.py', '-v', '0', '-w', '999999', '-p', str(priority), '-c', '\"./clients/memaslap -s %s:11211 -S 1s -B -T1 -c 1 -X 64 > %s\"' % (memcachedServer.IP(), partial_out)]
     if not qjump:
-      client_cmd = ['./clients/memaslap', '-s', memcachedServer.IP() + ':11211', '-S', '1s', '-B', '-T2', '-c', '4', '-X', '128', '>', partial_out]
+      client_cmd = ['./clients/memaslap', '-s', memcachedServer.IP() + ':11211', '-S', '1s', '-B', '-T1', '-c', '1', '-X', '64', '>', partial_out]
     memcachedClientProcess = memcachedClient.popen(*client_cmd, stdout=subprocess.PIPE, shell=True)
   return (memcachedServerProcess, memcachedClientProcess)
 
@@ -149,6 +149,7 @@ def runExp2(net, hadoop, expTime, dataDir):
 
   ptpdProcesses = startPTPd(net, ptpdOutfile, 0, True)
   memcachedProcesses = startMemcached(net, memcachedOutfile, 0, True)
+  time.sleep(130)
   hadoop.runHadoopSimulation()
 
   cur = time.time()
@@ -175,6 +176,7 @@ def runExp3(net, hadoop, expTime, dataDir):
 
   ptpdProcesses = startPTPd(net, ptpdOutfile, 7, True)
   memcachedProcesses = startMemcached(net, memcachedOutfile, 5, True)
+  time.sleep(130)
   hadoop.runHadoopSimulation()
 
   cur = time.time()
@@ -199,7 +201,7 @@ def configureHadoopSim(net, hadoopDir):
     workers.append(net.getNodeByName(wn))
 
   master = net.getNodeByName("h2")
-  sizes = [1 * MB, 2 * MB, 5 * MB]
+  sizes = [10 * KB, 20 * KB, 50 * KB]
   replicationFactor = 6
   priority = 0
 
