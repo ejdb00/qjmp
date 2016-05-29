@@ -252,11 +252,13 @@ def main():
   configureQueues(net)
   installQjump(net)
 
+  time.sleep(10)
   runExp1(net, expTime, dataDir)
-
+  time.sleep(5)
   runExp2(net, hadoop, expTime, dataDir)
-
+  time.sleep(5)
   runExp3(net, hadoop, expTime, dataDir)
+  time.sleep(5)
 
   net.stop()
   hadoop.removeFiles()
