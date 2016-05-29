@@ -47,6 +47,7 @@ class QJmpTopo(Topo):
 
     return
 
+
 def configureQueues(net):
   for node in net.hosts:
     for name in node.intfNames():
@@ -56,7 +57,8 @@ def configureQueues(net):
         node.pexec('vconfig', 'set_egress_map', name, str(i), str(i))
         node.pexec('vconfig', 'set_ingress_map', name, str(i), str(i))
 
-def installQjump(net, root_name):
+
+def installQjump(net):
   for node in net.hosts:
     intfNames = node.intfNames()
     for name in intfNames:
@@ -64,6 +66,7 @@ def installQjump(net, root_name):
       if name == "lo":
         continue
       node.pexec('tc', 'qdisc', 'add' , 'dev', name, 'parent', '5:1', 'handle', '6:', 'qjump')
+
 
 def startPTPd(net, outfile, priority, qjump):
   ptpdServer = net.getNodeByName("h8")
@@ -176,7 +179,7 @@ def runExp3(net, hadoop, expTime, dataDir):
 
   ptpdProcesses = startPTPd(net, ptpdOutfile, 7, True)
   memcachedProcesses = startMemcached(net, memcachedOutfile, 5, True)
-  time.sleep(130)
+  time.sleep(150)
   hadoop.runHadoopSimulation()
 
   cur = time.time()
@@ -201,7 +204,7 @@ def configureHadoopSim(net, hadoopDir):
     workers.append(net.getNodeByName(wn))
 
   master = net.getNodeByName("h2")
-  sizes = [10 * KB, 20 * KB, 50 * KB]
+  sizes = [100 * KB, 200 * KB, 500 * KB]
   replicationFactor = 6
   priority = 0
 
@@ -245,6 +248,9 @@ def main():
   expTime = 11
 
   net.start()
+
+  configureQueues(net)
+  installQjump(net)
 
   runExp1(net, expTime, dataDir)
 
