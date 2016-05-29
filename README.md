@@ -3,7 +3,7 @@
 First bring up an instance of our public AMI: cs244-16-qjump
 
 0. cd pa3/experiment
-0.5 git pull origin master
+1. git pull origin master
 1. sudo lsmod | grep 8021q
   - if there is output, skip the next step
 2. sudo modprobe 8021q
