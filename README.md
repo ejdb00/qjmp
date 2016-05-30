@@ -1,6 +1,6 @@
 # cs244 qjump
 
-First bring up an instance of our public AMI: cs244-16-qjump
+First bring up an instance of our public AMI: cs244-16-qjump -- We used a C4.2xlarge instance
 
 0. cd pa3/experiment
 1. git pull origin master
