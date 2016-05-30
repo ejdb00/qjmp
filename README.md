@@ -19,5 +19,5 @@ First bring up an instance of our public AMI: cs244-16-qjump
 9. git clone https://github.com/camsas/qjump-nsdi15-plotting
 10. sudo python qjump-nsdi15-plotting/figure1a_5/plot_ptpd_memcached_hadoop_timeline.py exp1_PTPd_out exp1_memcached_out exp2_PTPd_out exp2_memcached_out exp3_PTPd_out exp3_memcached_out
 
-Open the PDF with your favorite viewer \\
+Open the PDF with your favorite viewer \
 Marvel at how it almost looks intelligible
