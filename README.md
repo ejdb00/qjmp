@@ -19,5 +19,7 @@ First bring up an instance of our public AMI: cs244-16-qjump
 9. git clone https://github.com/camsas/qjump-nsdi15-plotting
 10. sudo python qjump-nsdi15-plotting/figure1a_5/plot_ptpd_memcached_hadoop_timeline.py exp1_PTPd_out exp1_memcached_out exp2_PTPd_out exp2_memcached_out exp3_PTPd_out exp3_memcached_out
 
-Open the PDF with your favorite viewer \
+Open the PDF with your favorite viewer   
 Marvel at how it almost looks intelligible
+
+Note: The testing script is relatively fragile in that it has very little error handling. If it fails at runtime for some reason, you probably have to 'sudo reboot' and start this whole list of instructions over again because the mininet state will not have been cleaned up. Would have liked to have added more graceful handling into the script with a little more time :/
