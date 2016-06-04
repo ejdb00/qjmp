@@ -7,19 +7,19 @@ from mininet.net import Mininet
 from mininet.util import dumpNodeConnections
 from mininet.cli import CLI
 from mininet.log import setLogLevel
+from mininet.examples.vlanhost import VLANHost
+
+from functools import partial
 
 import hadoop_sim
 import os
 import signal
 import subprocess
 import time
-
-from functools import partial
-from mininet.examples.vlanhost import VLANHost
+import argparse
 
 MB = 1024 * 1024
 KB = 1024
-
 
 class QJmpTopo(Topo):
   "Topology for QJump experiments"
@@ -46,7 +46,6 @@ class QJmpTopo(Topo):
       self.addLink(hosts[h], switches[s], bw=15)
 
     return
-
 
 def configureQueues(net):
   for node in net.hosts:
@@ -229,7 +228,16 @@ def configureExpTopo():
   net = Mininet(topo=topo, host=host, link = TCLink, switch = OVSHtbQosSwitch)
   return net
 
+def parseArgs():
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--which', default='123', help='specify which experiments to run (default: 123)')
+  args = parser.parse_args()
+  return args.which
+
 def main():
+
+  which = parseArgs()
+
   if not os.path.exists("./data"):
     os.makedirs("./data")
   dataDir = os.path.join("./data", time.strftime("%d-%m-%Y_%H-%M-%S"))
@@ -253,12 +261,15 @@ def main():
   installQjump(net)
 
   time.sleep(10)
-  runExp1(net, expTime, dataDir)
-  time.sleep(5)
-  runExp2(net, hadoop, expTime, dataDir)
-  time.sleep(5)
-  runExp3(net, hadoop, expTime, dataDir)
-  time.sleep(5)
+  if '1' in which:
+    runExp1(net, expTime, dataDir)
+    time.sleep(5)
+  if '2' in which:
+    runExp2(net, hadoop, expTime, dataDir)
+    time.sleep(5)
+  if '3' in which:
+    runExp3(net, hadoop, expTime, dataDir)
+    time.sleep(5)
 
   net.stop()
   hadoop.removeFiles()

@@ -1,6 +1,13 @@
 # cs244 qjump
 
 First bring up an instance of our public AMI: cs244-16-qjump -- We used a C4.2xlarge instance
+It is available on US-West-2 (Oregon) region.
+
+There may be an error where the third PTPd output file is not created. We have not ascertained the cause.
+To mitigate this issue, the script now takes an optional "--which" argument, which should specify the experiments you wish to run.
+e.g. 'sudo python run_experiment.py --which 12' to run only the first two experiments or '--which 3' to run only the third
+Running each experiment separately should ensure that all output files are created correctly.
+
 
 0. cd pa3/experiment
 1. git pull origin master
@@ -17,7 +24,7 @@ First bring up an instance of our public AMI: cs244-16-qjump -- We used a C4.2xl
 
 8. copy the files in the new ‘processed’ dir to a machine with latex installed
 9. git clone https://github.com/camsas/qjump-nsdi15-plotting
-10. sudo python qjump-nsdi15-plotting/figure1a_5/plot_ptpd_memcached_hadoop_timeline.py exp1_PTPd_out exp1_memcached_out exp2_PTPd_out exp2_memcached_out exp3_PTPd_out exp3_memcached_out
+10. sudo python qjump-nsdi15-plotting/figure1a_5/plot_ptp_memcached_hadoop_timeline.py exp1_PTPd_out exp1_memcached_out exp2_PTPd_out exp2_memcached_out exp3_PTPd_out exp3_memcached_out
 
 Open the PDF with your favorite viewer   
 Marvel at how it almost looks intelligible
